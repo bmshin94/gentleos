@@ -52,19 +52,25 @@ krn_timer_get_counter_0(void)
     return ((uint16_t)hi << 8) | lo;
 }
 
-global void
-krn_timer_init(void)
+static void
+krn_timer_set_counter_0(uint16_t div)
 {
-    uint16_t div = 1193180 / TICK_FREQUENCY;
-
-    krn_debug_printf("Initializing timer... ");
-
-    /* Set Counter 0, write both LSB and MSB, use mode 3, binary counter */
+    /* Set Counter 0, write both LSB and MSB, use mode 3 (square wave), binary counter */
     outb(0x36, PIT_CWR);
 
     /* Write LSB and MSB for counter 0 */
     outb((uint8_t)((div >> 0) & 0xFF), PIT_CR0);
     outb((uint8_t)((div >> 8) & 0xFF), PIT_CR0);
+}
+
+global void
+krn_timer_init(void)
+{
+    uint16_t div = PIT_FREQUENCY / TICK_FREQUENCY;
+
+    krn_debug_printf("Initializing timer... ");
+
+    krn_timer_set_counter_0(div);
 
     krn_get_isr(0x08, &saved_isr_handler);
     krn_set_isr(0x08, krn_main_segment, (uint16_t)(uint32_t)&krn_isr_timer);

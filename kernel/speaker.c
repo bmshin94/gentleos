@@ -37,7 +37,7 @@ krn_speaker_play(uint16_t hz)
     outb(0xB6, PIT_CWR);
 
     /* Set counter 2 to the desired frequency */
-    (void)udiv32(&divisor, 1193180, hz);
+    (void)udiv32(&divisor, PIT_FREQUENCY, hz);
     outb((uint16_t)divisor & 0xFF, PIT_CR2);
     outb(((uint16_t)divisor >> 8) & 0xFF, PIT_CR2);
 
