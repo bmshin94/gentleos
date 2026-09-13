@@ -21,6 +21,9 @@ extern void krn_keyboard_handle_intr(void);
 extern void krn_keyboard_handle_bios(void);
 extern void krn_keyboard_init(void);
 extern void krn_keyboard_deinit(void);
+/* kernel/lock.c */
+extern krn_lock_t krn_lock(void);
+extern void krn_unlock(krn_lock_t lock);
 /* kernel/main.c */
 extern isr_st far *krn_ivt;
 extern void krn_main(void);

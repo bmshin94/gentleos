@@ -113,15 +113,14 @@ krn_event_ipush(event_st *event)
 global int
 krn_event_push(event_st *event)
 {
-    uint16_t flags;
+    krn_lock_t lock;
     int ret;
 
-    flags = cpu_get_flags();
-    cpu_cli();
+    lock = krn_lock();
 
     ret = krn_event_ipush(event);
 
-    cpu_set_flags(flags);
+    krn_unlock(lock);
 
     return ret;
 }
@@ -130,17 +129,16 @@ krn_event_push(event_st *event)
 global int
 krn_event_pop(event_st *event)
 {
-    uint16_t flags;
+    krn_lock_t lock;
 
-    flags = cpu_get_flags();
-    cpu_cli();
+    lock = krn_lock();
 
     if (krn_event_queue.head == krn_event_queue.tail) {
         if (EVENT_QUEUE_DEBUG) {
             krn_debug_printf("%s: pop failed\n", krn_event_format_queue());
         }
 
-        cpu_set_flags(flags);
+        krn_unlock(lock);
         return -1;
     }
 
@@ -153,22 +151,21 @@ krn_event_pop(event_st *event)
             krn_event_format(event));
     }
 
-    cpu_set_flags(flags);
+    krn_unlock(lock);
     return 0;
 }
 
 global uint16_t
 krn_event_count(void)
 {
-    uint16_t flags;
+    krn_lock_t lock;
     uint16_t ret;
 
-    flags = cpu_get_flags();
-    cpu_cli();
+    lock = krn_lock();
 
     ret = (krn_event_queue.head + EVENT_QUEUE_SIZE - krn_event_queue.tail) % EVENT_QUEUE_SIZE;
 
-    cpu_set_flags(flags);
+    krn_unlock(lock);
     return ret;
 }
 

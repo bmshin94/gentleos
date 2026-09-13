@@ -15,6 +15,8 @@ typedef struct {
     uint16_t seg;
 } isr_st;
 
+typedef uint16_t krn_lock_t;
+
 enum {
     EVENT_UNKNOWN = 0,
     EVENT_KEY_DOWN = 5,

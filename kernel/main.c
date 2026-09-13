@@ -79,12 +79,12 @@ krn_exit(void)
 global void
 krn_set_isr(uint8_t no, uint16_t seg, uint16_t ofs)
 {
-    uint16_t flags = cpu_get_flags();
+    krn_lock_t lock = krn_lock();
 
     krn_ivt[no].seg = seg;
     krn_ivt[no].ofs = ofs;
 
-    cpu_set_flags(flags);
+    krn_unlock(lock);
 }
 
 global void
