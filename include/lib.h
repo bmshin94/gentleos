@@ -76,6 +76,8 @@ typedef int32_t ssize_t;
 
 #define ASSERT(expr) krn_debug_assert((expr), __FILE__, __LINE__)
 
+#define TICK_FREQUENCY 20
+
 typedef union {
     void far *ptr;
 

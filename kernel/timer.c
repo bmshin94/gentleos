@@ -11,7 +11,6 @@
 enum {
     PIT_CR0 = 0x40,
     PIT_CWR = 0x43,
-    TIMER_HZ = 20,
 };
 
 static isr_st saved_isr_handler;
@@ -24,7 +23,7 @@ krn_timer_handle_intr(void)
 {
     event_st event;
 
-    timer_msecs += (1000 / TIMER_HZ);
+    timer_msecs += (1000 / TICK_FREQUENCY);
 
     event.type = EVENT_TIMER_TICK;
     event.payload = timer_msecs;
@@ -56,7 +55,7 @@ krn_timer_get_counter_0(void)
 global void
 krn_timer_init(void)
 {
-    uint16_t div = 1193180 / TIMER_HZ;
+    uint16_t div = 1193180 / TICK_FREQUENCY;
 
     krn_debug_printf("Initializing timer... ");
 
