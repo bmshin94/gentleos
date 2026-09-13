@@ -26,6 +26,7 @@ enum {
     WINDOW_WIDTH = GRID_X + GRID_WIDTH + APP_BUTTON_H_MARGIN + 1,
     WINDOW_HEIGHT = GRID_Y + GRID_HEIGHT + APP_BUTTON_V_MARGIN + 1,
 
+    TICK_FREQUENCY = DEFAULT_TICK_FREQUENCY,
     REFRESH_TICKS = TICK_FREQUENCY * 15 / 10, /* 1.5s */
 };
 
@@ -216,6 +217,7 @@ on_init(void)
 
 global app_st app_launcher = {
     "Launcher",
-	0,
+    0,
+    TICK_FREQUENCY,
     on_init,
 };

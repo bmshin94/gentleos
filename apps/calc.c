@@ -313,5 +313,6 @@ on_init(void)
 global app_st app_calc = {
     "Calculator",
     &icon_calc,
+    DEFAULT_TICK_FREQUENCY,
     on_init,
 };

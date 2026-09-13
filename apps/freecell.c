@@ -38,6 +38,7 @@ enum {
     STATE_WON = 2,
     STATE_AUTO_PENDING = 3,
 
+    TICK_FREQUENCY = DEFAULT_TICK_FREQUENCY,
     AUTO_MOVE_HIGHLIGHT_TICKS = TICK_FREQUENCY * 10 / 100, /* 0.10s */
     AUTO_MOVE_EXECUTE_TICKS = TICK_FREQUENCY * 30 / 100,   /* 0.30s */
 };
@@ -673,5 +674,6 @@ on_init(void)
 global app_st app_freecell = {
     "FreeCell",
     &icon_freecell,
+    TICK_FREQUENCY,
     on_init,
 };

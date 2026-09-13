@@ -42,6 +42,8 @@ gui_run_app(app_st *app)
 
     gui_current_app = app;
 
+    krn_timer_set_frequency(gui_current_app->tick_frequency);
+
     if (gui_current_app->on_init) {
         gui_current_app->on_init();
         gui_current_app->on_init = (void(*)(void))NULL;

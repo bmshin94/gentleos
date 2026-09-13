@@ -22,6 +22,7 @@ enum {
     WINDOW_WIDTH = GRID_X + GRID_WIDTH + 1,
     WINDOW_HEIGHT = GRID_Y + GRID_HEIGHT + 1,
 
+    TICK_FREQUENCY = DEFAULT_TICK_FREQUENCY,
     MOVE_TICKS = TICK_FREQUENCY * 15 / 100, /* 0.15s */
 };
 
@@ -298,5 +299,6 @@ on_init(void)
 global app_st app_snake = {
     "Snake",
     &icon_snake,
+    TICK_FREQUENCY,
     on_init,
 };

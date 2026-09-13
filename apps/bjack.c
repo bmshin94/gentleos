@@ -334,5 +334,6 @@ on_init(void)
 global app_st app_blackjack = {
     "Blackjack",
     &icon_bjack,
+    DEFAULT_TICK_FREQUENCY,
     on_init,
 };

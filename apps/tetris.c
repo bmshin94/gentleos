@@ -5,7 +5,6 @@
  * File: tetris.c - Tetris game
  */
 
-#include "kernel.h"
 #include <gui.h>
 
 enum {
@@ -21,6 +20,7 @@ enum {
     WINDOW_WIDTH = GRID_X + GRID_WIDTH + 1,
     WINDOW_HEIGHT = GRID_Y + GRID_HEIGHT + 1,
 
+    TICK_FREQUENCY = DEFAULT_TICK_FREQUENCY,
     DROP_TICKS = TICK_FREQUENCY * 4 / 10, /* 0.4s */
 };
 
@@ -353,5 +353,6 @@ on_init(void)
 global app_st app_tetris = {
     "Tetris",
     &icon_tetris,
+    TICK_FREQUENCY,
     on_init,
 };
