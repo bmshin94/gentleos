@@ -37,8 +37,8 @@ enum {
     STATE_WON = 1,
     STATE_AUTO_PENDING = 2,
 
-    AUTO_MOVE_HIGHLIGHT_TICKS = 2,
-    AUTO_MOVE_EXECUTE_TICKS = 6,
+    AUTO_MOVE_HIGHLIGHT_TICKS = TICK_FREQUENCY * 10 / 100, /* 0.10s */
+    AUTO_MOVE_EXECUTE_TICKS = TICK_FREQUENCY * 30 / 100,   /* 0.30s */
 };
 
 static window_st window;

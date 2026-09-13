@@ -20,6 +20,8 @@ enum {
 
     WINDOW_WIDTH = GRID_X + GRID_WIDTH + 1,
     WINDOW_HEIGHT = GRID_Y + GRID_HEIGHT + 1,
+
+    DROP_TICKS = TICK_FREQUENCY * 4 / 10, /* 0.4s */
 };
 
 static window_st window;
@@ -273,7 +275,7 @@ static void
 on_tick(void) {
     static unsigned count = 0;
 
-    if ((++count) < 8) {
+    if ((++count) < DROP_TICKS) {
         return;
     }
 

@@ -22,7 +22,8 @@ enum {
     WINDOW_HEIGHT = GRID_Y + GRID_HEIGHT + 1,
 
     PAIR_COUNT = GRID_CELL_COUNT / 2,
-    MISMATCH_DELAY = 800,
+
+    MISMATCH_TICKS = TICK_FREQUENCY, /* 1s */
 };
 
 static window_st window;
@@ -244,7 +245,7 @@ on_enter(void)
         second_pick = -1;
         matched_count++;
     } else {
-        waiting = 20;
+        waiting = MISMATCH_TICKS;
     }
 
     update_status();

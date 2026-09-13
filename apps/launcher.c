@@ -25,6 +25,8 @@ enum {
 
     WINDOW_WIDTH = GRID_X + GRID_WIDTH + APP_BUTTON_H_MARGIN + 1,
     WINDOW_HEIGHT = GRID_Y + GRID_HEIGHT + APP_BUTTON_V_MARGIN + 1,
+
+    REFRESH_TICKS = TICK_FREQUENCY * 15 / 10, /* 1.5s */
 };
 
 static app_st *apps[] = {
@@ -102,7 +104,7 @@ on_tick(void)
 
     ++count;
 
-    if (count >= 30) {
+    if (count >= REFRESH_TICKS) {
         update_status_br();
         count = 0;
     }

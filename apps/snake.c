@@ -21,6 +21,8 @@ enum {
 
     WINDOW_WIDTH = GRID_X + GRID_WIDTH + 1,
     WINDOW_HEIGHT = GRID_Y + GRID_HEIGHT + 1,
+
+    MOVE_TICKS = TICK_FREQUENCY * 15 / 100, /* 0.15s */
 };
 
 static window_st window;
@@ -227,7 +229,7 @@ on_tick(void)
 
     ++count;
 
-    if (count >= 3) {
+    if (count >= MOVE_TICKS) {
         on_timeout();
         count = 0;
     }

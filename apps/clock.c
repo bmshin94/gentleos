@@ -19,6 +19,8 @@ enum {
 
     WINDOW_WIDTH = GRID_X + GRID_WIDTH + 1,
     WINDOW_HEIGHT = GRID_Y + GRID_HEIGHT + 1,
+
+    REFRESH_TICKS = TICK_FREQUENCY * 25 / 100, /* 0.25s */
 };
 
 static window_st window;
@@ -114,7 +116,7 @@ on_tick(void)
 
     ++count;
 
-    if (count >= 5) {
+    if (count >= REFRESH_TICKS) {
         count = 0;
         on_timeout();
     }
