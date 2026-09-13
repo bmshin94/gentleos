@@ -17,13 +17,14 @@ static isr_st saved_isr_handler;
 extern void *krn_isr_timer;
 
 volatile static uint32_t timer_msecs;
+static uint16_t timer_msecs_per_tick;
 
 global void
 krn_timer_handle_intr(void)
 {
     event_st event;
 
-    timer_msecs += (1000 / TICK_FREQUENCY);
+    timer_msecs += timer_msecs_per_tick;
 
     event.type = EVENT_TIMER_TICK;
     event.payload = timer_msecs;
@@ -63,14 +64,31 @@ krn_timer_set_counter_0(uint16_t div)
     outb((uint8_t)((div >> 8) & 0xFF), PIT_CR0);
 }
 
+/* Note: The divisor must fit in 16 bits and a tick must last a whole number of msecs */
+global void
+krn_timer_set_frequency(uint16_t hz)
+{
+    krn_lock_t lock;
+    uint32_t div;
+
+    ASSERT(hz >= 19 && hz <= 1000);
+
+    (void)udiv32(&div, PIT_FREQUENCY, hz);
+
+    lock = krn_lock();
+
+    timer_msecs_per_tick = 1000 / hz;
+    krn_timer_set_counter_0((uint16_t)div);
+
+    krn_unlock(lock);
+}
+
 global void
 krn_timer_init(void)
 {
-    uint16_t div = PIT_FREQUENCY / TICK_FREQUENCY;
-
     krn_debug_printf("Initializing timer... ");
 
-    krn_timer_set_counter_0(div);
+    krn_timer_set_frequency(DEFAULT_TICK_FREQUENCY);
 
     krn_get_isr(0x08, &saved_isr_handler);
     krn_set_isr(0x08, krn_main_segment, (uint16_t)(uint32_t)&krn_isr_timer);
