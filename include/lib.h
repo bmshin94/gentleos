@@ -76,6 +76,14 @@ typedef int32_t ssize_t;
 
 #define ASSERT(expr) krn_debug_assert((expr), __FILE__, __LINE__)
 
+typedef union {
+    void far *ptr;
+
+    struct {
+        uint16_t ofs, seg;
+    } w;
+} farptr_st;
+
 typedef struct {
     uint8_t second;
     uint8_t minute;
