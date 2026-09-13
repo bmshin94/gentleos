@@ -81,5 +81,6 @@ krn_timer_init(void)
 global void
 krn_timer_deinit(void)
 {
+    krn_timer_set_counter_0(0);
     krn_set_isr(0x08, saved_isr_handler.seg, saved_isr_handler.ofs);
 }
