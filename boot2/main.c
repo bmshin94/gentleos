@@ -61,6 +61,7 @@ typedef struct {
 extern void intr(int, regs_st *);
 extern void start_kernel(void);
 extern void halt(void);
+extern void stop_floppy_motor(void);
 
 static uint8_t boot_drive_index = 0;
 static uint8_t boot_drive_spt = 0;
@@ -270,6 +271,11 @@ cmain(void)
     fix_diskette_param_table(boot_drive_spt);
 
     load_kernel();
+
+    if (boot_drive_index == 0 || boot_drive_index == 1) {
+        stop_floppy_motor();
+    }
+
     start_kernel();
 
     halt();

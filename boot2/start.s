@@ -100,6 +100,34 @@ _halt:
     hlt
     jmp _halt
 
+
+BDA_SEGMENT             equ 0x0040
+BDA_MOTOR_STATUS        equ 0x3f   ; bits 0-3: motors running
+BDA_MOTOR_TIMEOUT       equ 0x40
+FDC_PORT_DOR            equ 0x3f2
+FDC_DOR_MOTORS_OFF      equ 0x0c   ; DMA/IRQ on, not in reset, motors off
+
+global _stop_floppy_motor
+_stop_floppy_motor:
+    push ax
+    push dx
+    push es
+
+    mov dx, FDC_PORT_DOR
+    mov al, FDC_DOR_MOTORS_OFF
+    out dx, al
+
+    mov ax, BDA_SEGMENT
+    mov es, ax
+    and byte [es:BDA_MOTOR_STATUS], 0xf0
+    mov byte [es:BDA_MOTOR_TIMEOUT], 0
+
+    pop es
+    pop dx
+    pop ax
+    ret
+
+
 section _DATA class=DATA
 section _DATAEND class=DATAEND
 section _BSS class=BSS
