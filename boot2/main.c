@@ -52,12 +52,19 @@ typedef union {
     } h;
 } regs_st;
 
+typedef struct {
+    uint8_t cylinder;
+    uint8_t head;
+    uint8_t sector;
+} chs_st;
+
 extern void intr(int, regs_st *);
 extern void start_kernel(void);
 extern void halt(void);
 
-static uint8_t drive = 0;
-static uint8_t sectors_per_track = 0;
+static uint8_t boot_drive_index = 0;
+static uint8_t boot_drive_spt = 0;
+static uint8_t boot_drive_heads = 0;
 
 /*
  * Copy BIOS's diskette parameter table to a new location and fix SPT value.
@@ -134,16 +141,15 @@ puts(const char *s)
     }
 }
 
-static uint8_t
-get_sectors_per_track(void)
+static void
+load_drive_geometry(void)
 {
     regs_st regs;
-    uint8_t spt;
 
     regs_init(&regs);
 
     regs.h.ah = 0x08;
-    regs.h.dl = drive;
+    regs.h.dl = boot_drive_index;
 
     /* Setting these 2 just in case, not sure if needed */
     regs.x.es = 0;
@@ -151,15 +157,15 @@ get_sectors_per_track(void)
 
     intr(0x13, &regs);
 
-    /* If the call is unsupported, return value for 720K/360K disks */
-    if (regs.x.flags & 0x0001) {
-        return 9;
+    /* If the call is unsupported or returns garbage, use values for 720K/360K disks */
+    if ((regs.x.flags & 0x0001) || (regs.h.cl & 0x3f) == 0) {
+        boot_drive_spt = 9;
+        boot_drive_heads = 2;
+        return;
     }
 
-    spt = regs.h.cl & 0x3f;
-    spt = spt ? spt : 9;
-
-    return spt;
+    boot_drive_spt = regs.h.cl & 0x3f;
+    boot_drive_heads = regs.h.dh + 1;
 }
 
 static void
@@ -170,13 +176,13 @@ reset_drive(void)
     regs_init(&regs);
 
     regs.h.ah = 0x00;
-    regs.h.dl = drive;
+    regs.h.dl = boot_drive_index;
 
     intr(0x13, &regs);
 }
 
 static int
-do_load_sectors(uint8_t n, uint8_t track, uint8_t head, uint8_t sector, unsigned target)
+load_sectors(uint8_t n, const chs_st *chs, unsigned target)
 {
     regs_st regs;
 
@@ -184,10 +190,10 @@ do_load_sectors(uint8_t n, uint8_t track, uint8_t head, uint8_t sector, unsigned
 
     regs.h.ah = 0x02;
     regs.h.al = n;
-    regs.h.ch = track;
-    regs.h.cl = sector;
-    regs.h.dh = head;
-    regs.h.dl = drive;
+    regs.h.ch = chs->cylinder;
+    regs.h.cl = chs->sector;
+    regs.h.dh = chs->head;
+    regs.h.dl = boot_drive_index;
     regs.x.bx = target;
     regs.x.es = KERNEL_SEGMENT;
 
@@ -197,12 +203,12 @@ do_load_sectors(uint8_t n, uint8_t track, uint8_t head, uint8_t sector, unsigned
 }
 
 static void
-load_sectors(uint8_t n, uint8_t track, uint8_t head, uint8_t sector, unsigned target)
+safe_load_sectors(uint8_t n, const chs_st *chs, unsigned target)
 {
     int i, status;
 
     for (i = 0; i < 3; ++i) {
-        status = do_load_sectors(n, track, head, sector, target);
+        status = load_sectors(n, chs, target);
 
         if (status == 0) {
             putc('.');
@@ -220,29 +226,32 @@ load_sectors(uint8_t n, uint8_t track, uint8_t head, uint8_t sector, unsigned ta
 static void
 load_kernel(void)
 {
-    int track = 0;
-    int head = 0;
-    int sector = KERNEL_START_SECTOR;
+    chs_st chs;
     int remaining = KERNEL_SIZE;
     unsigned target = KERNEL_OFFSET;
     unsigned n;
 
+    chs.cylinder = 0;
+    chs.head = 0;
+    chs.sector = KERNEL_START_SECTOR;
+
     while (remaining > 0) {
-        n = sectors_per_track - (sector - 1);
+        n = boot_drive_spt - (chs.sector - 1);
 
         if (n > remaining) {
             n = remaining;
         }
 
-        load_sectors(n, track, head, sector, target);
+        safe_load_sectors(n, &chs, target);
 
         remaining -= n;
         target += n * 512;
-        sector = 1;
-        head = head ? 0 : 1;
+        chs.sector = 1;
+        ++chs.head;
 
-        if (head == 0) {
-            ++track;
+        if (chs.head == boot_drive_heads) {
+            chs.head = 0;
+            ++chs.cylinder;
         }
     }
 }
@@ -254,11 +263,11 @@ cmain(void)
 
     puts("\r\nLoading GentleOS [github.com/luke8086/gentleos]");
 
-    drive = *drive_ptr;
+    boot_drive_index = *drive_ptr;
     reset_drive();
 
-    sectors_per_track = get_sectors_per_track();
-    fix_diskette_param_table(sectors_per_track);
+    load_drive_geometry();
+    fix_diskette_param_table(boot_drive_spt);
 
     load_kernel();
     start_kernel();
