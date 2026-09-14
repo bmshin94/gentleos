@@ -90,6 +90,9 @@ _start_kernel:
     mov ss, ax
     mov sp, 0xffff
 
+    ; Clear area used to detect running under DOS
+    mov word [es:0], 0
+
     sti
     jmp 0x1000:0x100
 

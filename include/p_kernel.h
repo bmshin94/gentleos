@@ -27,6 +27,7 @@ extern void krn_unlock(krn_lock_t lock);
 /* kernel/main.c */
 extern isr_st far *krn_ivt;
 extern void krn_main(void);
+extern int krn_is_dos(void);
 extern void krn_exit(void);
 extern void krn_set_isr(uint8_t no, uint16_t seg, uint16_t ofs);
 extern void krn_get_isr(uint8_t no, isr_st *dst);

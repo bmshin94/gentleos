@@ -58,14 +58,20 @@ krn_main(void)
     /* UNREACHABLE */
 }
 
+global int
+krn_is_dos(void)
+{
+    uint16_t *psp = 0;
+
+    return *psp == 0x20cd;
+}
+
 global void
 krn_exit(void)
 {
     regs_st regs;
-    uint16_t *psp = 0;
 
-    /* Do nothing if not under DOS */
-    if (*psp != 0x20cd) {
+    if (!krn_is_dos()) {
         return;
     }
 
