@@ -10,3 +10,8 @@ use File::Path;
 rmtree('build');
 unlink('data/data.c');
 unlink('Makefile');
+unlink('gentleos.com');
+unlink("disk.img");
+unlink("fd720.img");
+unlink("fd1440.img");
+unlink("web.img");

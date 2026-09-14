@@ -35,7 +35,7 @@ sub make_disk {
     my $boot1 = pad(slurp("build/boot1/boot1.bin"), 512);
     my $boot2 = pad(slurp("build/boot2/boot2.com"), 2048);
 
-    my $kernel = slurp("build/gentleos.com");
+    my $kernel = slurp("gentleos.com");
     substr($kernel, 2, 2, pack("v", $flags));
 
     my $image = pad($boot1 . $boot1 . $boot2 . $kernel, $size);
@@ -51,7 +51,7 @@ sub make_disk {
     print "Done\n";
 }
 
-make_disk("BUILD/DISK.IMG", 0, 0x00);
-make_disk("BUILD/FD720.IMG", 720 * 1024, 0x00);
-make_disk("BUILD/FD1440.IMG", 1440 * 1024, 0x00);
-make_disk("BUILD/WEB.IMG", 1440 * 1024, $KRN_FLAG_COLORS_INVERTED);
+make_disk("disk.img", 0, 0x00);
+make_disk("fd720.img", 720 * 1024, 0x00);
+make_disk("fd1440.img", 1440 * 1024, 0x00);
+make_disk("web.img", 1440 * 1024, $KRN_FLAG_COLORS_INVERTED);

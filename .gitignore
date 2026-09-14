@@ -1,5 +1,9 @@
 .DS_Store
 /.vscode/*
+/*.com
+/*.COM
+/*.img
+/*.IMG
 /build
 /BUILD
 /MAKEFILE
