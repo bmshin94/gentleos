@@ -42,7 +42,7 @@ static uint8_t cell_colors[4];
 static uint8_t cells[GRID_COLS][GRID_ROWS];
 
 typedef struct {
-    int x, y;
+    uint8_t x, y;
 } coords_st;
 
 static struct {
