@@ -26,17 +26,22 @@ enum {
     TAG_KEY_B = 2,
 };
 
-static window_st window;
+typedef struct {
+    window_st window;
 
-static widget_st keys_w[KEY_W_COUNT];
-static widget_st keys_b[KEY_B_COUNT];
-static widget_st *pressed_widget;
+    widget_st keys_w[KEY_W_COUNT];
+    widget_st keys_b[KEY_B_COUNT];
+    widget_st *pressed_widget;
+} app_state_st;
+
+static app_state_st *app_state = (app_state_st *)gui_app_shared_buffer;
 
 static void
 draw_key_w(widget_st *widget)
 {
+    app_state_st *a = app_state;
     rect_st rect_base;
-    uint8_t color = (widget == pressed_widget) ? gui_color_fg : gui_color_bg;
+    uint8_t color = (widget == a->pressed_widget) ? gui_color_fg : gui_color_bg;
 
     int octave = widget->tag2 / 7;
     int ofs = widget->tag2 % 7;
@@ -68,7 +73,8 @@ draw_key_w(widget_st *widget)
 static void
 draw_key_b(widget_st *widget)
 {
-    uint8_t color = (widget == pressed_widget) ? gui_color_bg : gui_color_fg;
+    app_state_st *a = app_state;
+    uint8_t color = (widget == a->pressed_widget) ? gui_color_bg : gui_color_fg;
 
     gui_surface_draw_rect(widget->origin, &widget->rect, color);
 
@@ -92,35 +98,36 @@ key_frequency(widget_st *widget)
 static widget_st *
 key_for_key_code(int key_code)
 {
+    app_state_st *a = app_state;
     widget_st *w = NULL;
 
     switch (key_code) {
-    case KEY_Z: w = &keys_w[0]; break;
-    case KEY_X: w = &keys_w[1]; break;
-    case KEY_C: w = &keys_w[2]; break;
-    case KEY_V: w = &keys_w[3]; break;
-    case KEY_B: w = &keys_w[4]; break;
-    case KEY_N: w = &keys_w[5]; break;
-    case KEY_M: w = &keys_w[6]; break;
-    case KEY_COMMA: w = &keys_w[7]; break;
-    case KEY_W: w = &keys_w[7]; break;
-    case KEY_E: w = &keys_w[8]; break;
-    case KEY_R: w = &keys_w[9]; break;
-    case KEY_T: w = &keys_w[10]; break;
-    case KEY_Y: w = &keys_w[11]; break;
-    case KEY_U: w = &keys_w[12]; break;
-    case KEY_I: w = &keys_w[13]; break;
-    case KEY_O: w = &keys_w[14]; break;
-    case KEY_S: w = &keys_b[0]; break;
-    case KEY_D: w = &keys_b[1]; break;
-    case KEY_G: w = &keys_b[2]; break;
-    case KEY_H: w = &keys_b[3]; break;
-    case KEY_J: w = &keys_b[4]; break;
-    case KEY_3: w = &keys_b[5]; break;
-    case KEY_4: w = &keys_b[6]; break;
-    case KEY_6: w = &keys_b[7]; break;
-    case KEY_7: w = &keys_b[8]; break;
-    case KEY_8: w = &keys_b[9]; break;
+    case KEY_Z: w = &a->keys_w[0]; break;
+    case KEY_X: w = &a->keys_w[1]; break;
+    case KEY_C: w = &a->keys_w[2]; break;
+    case KEY_V: w = &a->keys_w[3]; break;
+    case KEY_B: w = &a->keys_w[4]; break;
+    case KEY_N: w = &a->keys_w[5]; break;
+    case KEY_M: w = &a->keys_w[6]; break;
+    case KEY_COMMA: w = &a->keys_w[7]; break;
+    case KEY_W: w = &a->keys_w[7]; break;
+    case KEY_E: w = &a->keys_w[8]; break;
+    case KEY_R: w = &a->keys_w[9]; break;
+    case KEY_T: w = &a->keys_w[10]; break;
+    case KEY_Y: w = &a->keys_w[11]; break;
+    case KEY_U: w = &a->keys_w[12]; break;
+    case KEY_I: w = &a->keys_w[13]; break;
+    case KEY_O: w = &a->keys_w[14]; break;
+    case KEY_S: w = &a->keys_b[0]; break;
+    case KEY_D: w = &a->keys_b[1]; break;
+    case KEY_G: w = &a->keys_b[2]; break;
+    case KEY_H: w = &a->keys_b[3]; break;
+    case KEY_J: w = &a->keys_b[4]; break;
+    case KEY_3: w = &a->keys_b[5]; break;
+    case KEY_4: w = &a->keys_b[6]; break;
+    case KEY_6: w = &a->keys_b[7]; break;
+    case KEY_7: w = &a->keys_b[8]; break;
+    case KEY_8: w = &a->keys_b[9]; break;
     }
 
     return w;
@@ -129,6 +136,7 @@ key_for_key_code(int key_code)
 static void
 on_key_down(uint8_t key_code, uint8_t key_mods)
 {
+    app_state_st *a = app_state;
     widget_st *widget = key_for_key_code(key_code);
     widget_st *prev_widget;
 
@@ -136,27 +144,28 @@ on_key_down(uint8_t key_code, uint8_t key_mods)
         return;
     }
 
-    if (pressed_widget) {
-        prev_widget = pressed_widget;
-        pressed_widget = NULL;
+    if (a->pressed_widget) {
+        prev_widget = a->pressed_widget;
+        a->pressed_widget = NULL;
         prev_widget->draw(prev_widget);
     }
 
     krn_speaker_play(key_frequency(widget));
-    pressed_widget = widget;
+    a->pressed_widget = widget;
     widget->draw(widget);
 }
 
 static void
 on_key_up(uint8_t key_code, uint8_t key_mods)
 {
+    app_state_st *a = app_state;
     widget_st *widget = key_for_key_code(key_code);
 
-    if (!widget || widget != pressed_widget) {
+    if (!widget || widget != a->pressed_widget) {
         return;
     }
 
-    pressed_widget = NULL;
+    a->pressed_widget = NULL;
     widget->draw(widget);
     krn_speaker_stop();
 }
@@ -164,6 +173,7 @@ on_key_up(uint8_t key_code, uint8_t key_mods)
 static void
 init_keys(void)
 {
+    app_state_st *a = app_state;
     int i;
     int octave_no, octave_ofs, key_w_idx;
 
@@ -172,41 +182,45 @@ init_keys(void)
         octave_ofs = i % 5;
         key_w_idx = (octave_no * 7) + octave_ofs + 1 + (octave_ofs > 1 ? 1 : 0);
 
-        keys_b[i].origin = &window.origin;
-        keys_b[i].rect.x = (key_w_idx * KEY_W_WIDTH) - key_w_idx - (KEY_B_WIDTH / 2);
-        keys_b[i].rect.y = 1;
-        keys_b[i].rect.width = KEY_B_WIDTH;
-        keys_b[i].rect.height = KEY_B_HEIGHT;
-        keys_b[i].draw = draw_key_b;
-        keys_b[i].tag1 = TAG_KEY_B;
-        keys_b[i].tag2 = i;
+        a->keys_b[i].origin = &a->window.origin;
+        a->keys_b[i].rect.x = (key_w_idx * KEY_W_WIDTH) - key_w_idx - (KEY_B_WIDTH / 2);
+        a->keys_b[i].rect.y = 1;
+        a->keys_b[i].rect.width = KEY_B_WIDTH;
+        a->keys_b[i].rect.height = KEY_B_HEIGHT;
+        a->keys_b[i].draw = draw_key_b;
+        a->keys_b[i].tag1 = TAG_KEY_B;
+        a->keys_b[i].tag2 = i;
     }
 
     for (i = 0; i < KEY_W_COUNT; i++) {
-        keys_w[i].origin = &window.origin;
-        keys_w[i].rect.x = (i * KEY_W_WIDTH) - i;
-        keys_w[i].rect.y = 0;
-        keys_w[i].rect.width = KEY_W_WIDTH;
-        keys_w[i].rect.height = KEY_W_HEIGHT;
-        keys_w[i].draw = draw_key_w;
-        keys_w[i].tag1 = TAG_KEY_W;
-        keys_w[i].tag2 = i;
+        a->keys_w[i].origin = &a->window.origin;
+        a->keys_w[i].rect.x = (i * KEY_W_WIDTH) - i;
+        a->keys_w[i].rect.y = 0;
+        a->keys_w[i].rect.width = KEY_W_WIDTH;
+        a->keys_w[i].rect.height = KEY_W_HEIGHT;
+        a->keys_w[i].draw = draw_key_w;
+        a->keys_w[i].tag1 = TAG_KEY_W;
+        a->keys_w[i].tag2 = i;
     }
 }
 
 static void
 on_show(void)
 {
+    app_state_st *a = app_state;
     int i;
 
-    gui_window_draw(&window, gui_color_fg, 1);
+    gui_window_init(&a->window, WINDOW_WIDTH, WINDOW_HEIGHT);
+    init_keys();
+
+    gui_window_draw(&a->window, gui_color_fg, 1);
 
     for (i = 0; i < KEY_B_COUNT; ++i) {
-        keys_b[i].draw(&keys_b[i]);
+        a->keys_b[i].draw(&a->keys_b[i]);
     }
 
     for (i = 0; i < KEY_W_COUNT; ++i) {
-        keys_w[i].draw(&keys_w[i]);
+        a->keys_w[i].draw(&a->keys_w[i]);
     }
 
     if (krn_keyboard_use_bios) {
@@ -219,9 +233,7 @@ on_show(void)
 static void
 on_init(void)
 {
-    gui_window_init(&window, WINDOW_WIDTH, WINDOW_HEIGHT);
-
-    init_keys();
+    ASSERT(sizeof(app_state_st) <= sizeof(gui_app_shared_buffer));
 
     app_sounds.on_show = on_show;
     app_sounds.on_key_down = on_key_down;
