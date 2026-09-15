@@ -298,6 +298,9 @@ on_show(void)
 {
     app_state_st *a = &app_state;
 
+    gui_window_init(&a->window, WINDOW_WIDTH, WINDOW_HEIGHT);
+    init_grid();
+
     a->cell_colors[CELL_FLOOR] = gui_color_bg;
     a->cell_colors[CELL_WALL] = gui_color_fg;
     a->cell_colors[CELL_SNAKE] = gui_color_fg;
@@ -311,12 +314,6 @@ on_show(void)
 static void
 on_init(void)
 {
-    app_state_st *a = &app_state;
-
-    gui_window_init(&a->window, WINDOW_WIDTH, WINDOW_HEIGHT);
-
-    init_grid();
-
     app_snake.on_show = on_show;
     app_snake.on_tick = on_tick;
     app_snake.on_key_down = on_key_down;
