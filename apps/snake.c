@@ -66,12 +66,12 @@ typedef struct {
 } app_state_st;
 
 static int best_score;
-static app_state_st app_state;
+static app_state_st *app_state = (app_state_st *)gui_app_shared_buffer;
 
 static void
 update_status(void)
 {
-    app_state_st *a = &app_state;
+    app_state_st *a = app_state;
     const char *msg = "";
 
     if (a->game_over) {
@@ -86,7 +86,7 @@ update_status(void)
 static void
 draw_cell(int x, int y, uint8_t cell_type)
 {
-    app_state_st *a = &app_state;
+    app_state_st *a = app_state;
     rect_st r;
 
     a->cells[x][y] = cell_type;
@@ -116,7 +116,7 @@ draw_board(void)
 
 static void
 add_fruit(void) {
-    app_state_st *a = &app_state;
+    app_state_st *a = app_state;
     coords_st c;
 
     do {
@@ -130,7 +130,7 @@ add_fruit(void) {
 static coords_st
 move_head(coords_st head)
 {
-    app_state_st *a = &app_state;
+    app_state_st *a = app_state;
 
     switch (a->next_dir) {
     case DIR_UP:    head.y--; break;
@@ -145,7 +145,7 @@ move_head(coords_st head)
 static void
 move_snake(coords_st next_head)
 {
-    app_state_st *a = &app_state;
+    app_state_st *a = app_state;
     coords_st *c;
 
     if (a->body.grow) {
@@ -167,7 +167,7 @@ move_snake(coords_st next_head)
 static void
 end_game(void)
 {
-    app_state_st *a = &app_state;
+    app_state_st *a = app_state;
 
     a->game_over = 1;
 
@@ -181,7 +181,7 @@ end_game(void)
 static void
 restart_game(void)
 {
-    app_state_st *a = &app_state;
+    app_state_st *a = app_state;
 
     a->score = 0;
     a->game_over = 0;
@@ -203,7 +203,7 @@ restart_game(void)
 static void
 on_timeout(void)
 {
-    app_state_st *a = &app_state;
+    app_state_st *a = app_state;
     coords_st next_head;
     uint8_t next_block;
 
@@ -257,7 +257,7 @@ on_tick(void)
 static void
 on_key_down(uint8_t key_code, uint8_t key_mods)
 {
-    app_state_st *a = &app_state;
+    app_state_st *a = app_state;
 
     if (a->game_over) {
         restart_game();
@@ -283,7 +283,7 @@ on_key_down(uint8_t key_code, uint8_t key_mods)
 static void
 init_grid(void)
 {
-    app_state_st *a = &app_state;
+    app_state_st *a = app_state;
 
     a->grid.cell_width = GRID_CELL_WIDTH;
     a->grid.cell_height = GRID_CELL_HEIGHT;
@@ -296,7 +296,7 @@ init_grid(void)
 static void
 on_show(void)
 {
-    app_state_st *a = &app_state;
+    app_state_st *a = app_state;
 
     gui_window_init(&a->window, WINDOW_WIDTH, WINDOW_HEIGHT);
     init_grid();
@@ -314,6 +314,8 @@ on_show(void)
 static void
 on_init(void)
 {
+    ASSERT(sizeof(app_state_st) <= sizeof(gui_app_shared_buffer));
+
     app_snake.on_show = on_show;
     app_snake.on_tick = on_tick;
     app_snake.on_key_down = on_key_down;
