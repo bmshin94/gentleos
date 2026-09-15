@@ -48,12 +48,12 @@ typedef struct {
 } app_state_st;
 
 static uint16_t best_score;
-static app_state_st app_state;
+static app_state_st *app_state = (app_state_st *)gui_app_shared_buffer;
 
 static void
 update_status(void)
 {
-    app_state_st *a = &app_state;
+    app_state_st *a = app_state;
 
     if (a->game_won) {
         gui_status_set("You won!  Score: %u  Best: %u", a->score, best_score);
@@ -67,7 +67,7 @@ update_status(void)
 static void
 add_score(uint16_t score)
 {
-    app_state_st *a = &app_state;
+    app_state_st *a = app_state;
 
     a->score += score;
 
@@ -80,7 +80,7 @@ add_score(uint16_t score)
 static int
 has_moves(void)
 {
-    app_state_st *a = &app_state;
+    app_state_st *a = app_state;
     uint8_t cur;
     int col, row;
 
@@ -108,7 +108,7 @@ has_moves(void)
 static int
 has_won(void)
 {
-    app_state_st *a = &app_state;
+    app_state_st *a = app_state;
     int col, row;
 
     for (row = 0; row < GRID_ROWS; ++row) {
@@ -125,7 +125,7 @@ has_won(void)
 static int
 count_empty_cells(void)
 {
-    app_state_st *a = &app_state;
+    app_state_st *a = app_state;
     int col, row;
     int ret = 0;
 
@@ -143,7 +143,7 @@ count_empty_cells(void)
 static void
 draw_cell(int col, int row)
 {
-    app_state_st *a = &app_state;
+    app_state_st *a = app_state;
     cell_st *cell = &a->board[col][row];
     rect_st rect;
     uint8_t bg, fg;
@@ -184,7 +184,7 @@ draw_board(void)
 static void
 clear_flash(void)
 {
-    app_state_st *a = &app_state;
+    app_state_st *a = app_state;
     cell_st *cell;
     int col, row;
 
@@ -205,7 +205,7 @@ clear_flash(void)
 static void
 clear_board(void)
 {
-    app_state_st *a = &app_state;
+    app_state_st *a = app_state;
     int col, row;
 
     for (row = 0; row < GRID_ROWS; ++row) {
@@ -221,7 +221,7 @@ clear_board(void)
 static void
 set_random_cell(void)
 {
-    app_state_st *a = &app_state;
+    app_state_st *a = app_state;
     int col, row, empty_index, empty_count;
 
     empty_count = count_empty_cells();
@@ -317,7 +317,7 @@ slide_line(cell_st *line)
 static int
 slide_board(int dc, int dr)
 {
-    app_state_st *a = &app_state;
+    app_state_st *a = app_state;
     cell_st line[LINE_SIZE];
     cell_st *new_cell, *old_cell;
     int i, j, col, row, start_col, start_row;
@@ -357,7 +357,7 @@ slide_board(int dc, int dr)
 static void
 restart_game(void)
 {
-    app_state_st *a = &app_state;
+    app_state_st *a = app_state;
 
     a->game_over = 0;
     a->game_won = 0;
@@ -374,7 +374,7 @@ restart_game(void)
 static void
 make_move(int col_step, int row_step)
 {
-    app_state_st *a = &app_state;
+    app_state_st *a = app_state;
 
     clear_flash();
 
@@ -395,7 +395,7 @@ make_move(int col_step, int row_step)
 static void
 on_tick(void)
 {
-    app_state_st *a = &app_state;
+    app_state_st *a = app_state;
 
     if (!a->flash_ticks) {
         return;
@@ -411,7 +411,7 @@ on_tick(void)
 static void
 on_key_down(uint8_t key_code, uint8_t key_mods)
 {
-    app_state_st *a = &app_state;
+    app_state_st *a = app_state;
 
     if (key_code == KEY_R) {
         restart_game();
@@ -434,7 +434,7 @@ on_key_down(uint8_t key_code, uint8_t key_mods)
 static void
 init_grid(void)
 {
-    app_state_st *a = &app_state;
+    app_state_st *a = app_state;
 
     a->grid.cell_width = GRID_CELL_WIDTH;
     a->grid.cell_height = GRID_CELL_HEIGHT;
@@ -447,7 +447,10 @@ init_grid(void)
 static void
 on_show(void)
 {
-    app_state_st *a = &app_state;
+    app_state_st *a = app_state;
+
+    gui_window_init(&a->window, WINDOW_WIDTH, WINDOW_HEIGHT);
+    init_grid();
 
     gui_window_draw(&a->window, gui_color_fg, 1);
     gui_status_set_br("R: Restart");
@@ -463,11 +466,7 @@ on_show(void)
 static void
 on_init(void)
 {
-    app_state_st *a = &app_state;
-
-    gui_window_init(&a->window, WINDOW_WIDTH, WINDOW_HEIGHT);
-
-    init_grid();
+    ASSERT(sizeof(app_state_st) <= sizeof(gui_app_shared_buffer));
 
     app_2048.on_show = on_show;
     app_2048.on_key_down = on_key_down;
