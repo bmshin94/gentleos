@@ -1,3 +1,7 @@
+/* gui/app.c */
+extern rect_st gui_app_rect;
+extern void gui_app_launch(app_st *app);
+extern void gui_app_handle_event(event_st *event);
 /* gui/button.c */
 extern void gui_button_draw(widget_st *widget);
 /* gui/card.c */
@@ -20,13 +24,10 @@ extern void gui_grid_rect(grid_st *grid, rect_st *out);
 extern void gui_grid_cell_rect(grid_st *grid, int col, int row, rect_st *out);
 extern void gui_grid_draw_background(grid_st *grid, window_st *window, uint8_t color);
 /* gui/main.c */
-extern rect_st gui_app_rect;
-extern app_st *gui_current_app;
 extern int gui_colors_inverted;
 extern uint8_t gui_color_bg;
 extern uint8_t gui_color_fg;
 extern void gui_set_colors_inverted(int inverted);
-extern void gui_run_app(app_st *app);
 extern void gui_main(void);
 /* gui/rect.c */
 extern const point_st GUI_POINT_ZERO;

@@ -77,7 +77,7 @@ launch_current_app(void)
     app_st *app = get_current_app();
 
     gui_status_set_tl("GentleOS > %s", app->name);
-    gui_run_app(app);
+    gui_app_launch(app);
 }
 
 static void
