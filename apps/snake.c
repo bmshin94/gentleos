@@ -40,7 +40,7 @@ enum {
 };
 
 typedef struct {
-    uint8_t x, y;
+    int8_t x, y;
 } coords_st;
 
 typedef struct {
