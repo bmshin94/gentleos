@@ -7,7 +7,7 @@
 
 #include <kernel.h>
 
-static char buf[256];
+static char buf[128];
 
 global int krn_debug_text_mode_enabled = 1;
 global void (*krn_debug_status_cb)(const char *, ...) = (void (*)(const char *, ...))NULL;
