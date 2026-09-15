@@ -14,6 +14,8 @@ global rect_st gui_app_rect = {
     GUI_HEIGHT - STATUS_HEIGHT * 2,
 };
 
+global uint8_t gui_app_shared_buffer[1536];
+
 static app_st *gui_app_current;
 
 global void
@@ -31,6 +33,8 @@ gui_app_launch(app_st *app)
     gui_app_current = app;
 
     krn_timer_set_frequency(gui_app_current->tick_frequency);
+
+    memset(gui_app_shared_buffer, 0, sizeof(gui_app_shared_buffer));
 
     if (gui_app_current->on_init) {
         gui_app_current->on_init();
