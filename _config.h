@@ -10,11 +10,6 @@
 #define DEFAULT_COLORS_INVERTED 0
 
 /*
- * Run test suite on startup
- */
-#define ENABLE_TESTS 0
-
-/*
  * Debug keyboard events (requires DEBUG_TO_UART)
  */
 #define DEBUG_KEYBOARD 0

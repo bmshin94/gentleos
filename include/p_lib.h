@@ -35,8 +35,6 @@ extern void far * memset_far(void far *dest, int c, size_t n);
 extern int32_t strcmp(const char *s1, const char *s2);
 extern size_t strlen(const char *s1);
 extern char * strncpy(char *dest, const char *src, size_t n);
-/* lib/tests.c */
-extern void tests_run(void);
 /* lib/time.c */
 extern const char *TIME_MONTH_NAMES_SHORT[];
 extern const char *TIME_DAY_NAMES_SHORT[];

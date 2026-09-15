@@ -13,10 +13,6 @@ extern uint32_t krn_magic_number;
 
 global isr_st far *krn_ivt = MK_FP(0, 0);
 
-#if ENABLE_TESTS
-extern void tests_run(void);
-#endif
-
 static void
 krn_check_load(void)
 {
@@ -38,11 +34,6 @@ krn_main(void)
     krn_debug_printf("\n");
     krn_check_load();
     krn_mem_init();
-
-#if ENABLE_TESTS
-    tests_run();
-#endif
-
     krn_heap_init();
     krn_keyboard_init();
     krn_timer_init();
