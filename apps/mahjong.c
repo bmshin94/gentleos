@@ -86,30 +86,36 @@ static const uint8_t board_layout[BOARD_LAYERS][BOARD_ROWS][BOARD_COLS] = {
     },
 };
 
-static uint8_t board[BOARD_LAYERS][BOARD_ROWS][BOARD_COLS];
-static uint8_t dirty[BOARD_LAYERS][BOARD_ROWS][BOARD_COLS];
+typedef struct {
+    window_st window;
 
-static int cur_col;
-static int cur_row;
+    uint8_t board[BOARD_LAYERS][BOARD_ROWS][BOARD_COLS];
+    uint8_t dirty[BOARD_LAYERS][BOARD_ROWS][BOARD_COLS];
 
-static int sel_col;
-static int sel_row;
-static int sel_layer;
+    int cur_col;
+    int cur_row;
 
-static int remaining_pairs;
-static int valid_moves;
-static int state;
+    int sel_col;
+    int sel_row;
+    int sel_layer;
 
-static window_st window;
+    int remaining_pairs;
+    int valid_moves;
+    int state;
+} app_state_st;
+
+static app_state_st *app_state = (app_state_st *)gui_app_shared_buffer;
 
 static void
 update_status(void)
 {
-    if (state == STATE_WON) {
+    app_state_st *a = app_state;
+
+    if (a->state == STATE_WON) {
         gui_status_set("You Won! Press R to play again");
         gui_status_set_br("");
     } else {
-        gui_status_set("Pairs: %d  Moves: %d", remaining_pairs, valid_moves);
+        gui_status_set("Pairs: %d  Moves: %d", a->remaining_pairs, a->valid_moves);
         gui_status_set_br("S: Shuffle  R: Restart");
     }
 }
@@ -117,10 +123,11 @@ update_status(void)
 static int
 topmost_layer_at(int col, int row)
 {
+    app_state_st *a = app_state;
     int layer;
 
     for (layer = BOARD_LAYERS - 1; layer >= 0; layer--) {
-        if (board[layer][row][col] != TILE_EMPTY) {
+        if (a->board[layer][row][col] != TILE_EMPTY) {
             return layer;
         }
     }
@@ -131,9 +138,10 @@ topmost_layer_at(int col, int row)
 static int
 is_tile_free(int layer, int col, int row)
 {
+    app_state_st *a = app_state;
     int left_empty, right_empty;
 
-    if (board[layer][row][col] == TILE_EMPTY) {
+    if (a->board[layer][row][col] == TILE_EMPTY) {
         return 0;
     }
 
@@ -141,8 +149,8 @@ is_tile_free(int layer, int col, int row)
         return 0;
     }
 
-    left_empty = (col == 0 || board[layer][row][col - 1] == TILE_EMPTY);
-    right_empty = (col == BOARD_COLS - 1 || board[layer][row][col + 1] == TILE_EMPTY);
+    left_empty = (col == 0 || a->board[layer][row][col - 1] == TILE_EMPTY);
+    right_empty = (col == BOARD_COLS - 1 || a->board[layer][row][col + 1] == TILE_EMPTY);
 
     return left_empty || right_empty;
 }
@@ -150,6 +158,7 @@ is_tile_free(int layer, int col, int row)
 static int
 count_valid_moves(void)
 {
+    app_state_st *a = app_state;
     uint8_t free_counts[TILE_TYPE_COUNT + 1];
     int layer, col, row;
     uint8_t type;
@@ -161,7 +170,7 @@ count_valid_moves(void)
         for (row = 0; row < BOARD_ROWS; ++row) {
             for (col = 0; col < BOARD_COLS; ++col) {
                 if (is_tile_free(layer, col, row)) {
-                    type = board[layer][row][col];
+                    type = a->board[layer][row][col];
                     ++free_counts[type];
                 }
             }
@@ -178,7 +187,8 @@ count_valid_moves(void)
 static void
 draw_tile(int layer, int col, int row)
 {
-    uint8_t type = board[layer][row][col];
+    app_state_st *a = app_state;
+    uint8_t type = a->board[layer][row][col];
     int x = col * (TILE_W - 1) - layer * TILE_D;
     int y = row * (TILE_H - 1) - layer * TILE_D;
     int is_cursor;
@@ -186,7 +196,7 @@ draw_tile(int layer, int col, int row)
     uint8_t face_color;
     uint8_t glyph_color;
     rect_st rect;
-    point_st *origin = &window.origin;
+    point_st *origin = &a->window.origin;
     int has_right;
     int has_bottom;
     int has_diag;
@@ -199,21 +209,21 @@ draw_tile(int layer, int col, int row)
         return;
     }
 
-    is_cursor = (col == cur_col && row == cur_row && layer == topmost_layer_at(col, row));
-    is_selected = (col == sel_col && row == sel_row && layer == sel_layer);
+    is_cursor = (col == a->cur_col && row == a->cur_row && layer == topmost_layer_at(col, row));
+    is_selected = (col == a->sel_col && row == a->sel_row && layer == a->sel_layer);
 
     face_color = is_selected ? gui_color_fg : gui_color_bg;
     glyph_color = is_selected ? gui_color_bg : gui_color_fg;
 
-    has_right = (col < BOARD_COLS - 1 && board[layer][row][col + 1] != TILE_EMPTY);
-    has_bottom = (row < BOARD_ROWS - 1 && board[layer][row + 1][col] != TILE_EMPTY);
+    has_right = (col < BOARD_COLS - 1 && a->board[layer][row][col + 1] != TILE_EMPTY);
+    has_bottom = (row < BOARD_ROWS - 1 && a->board[layer][row + 1][col] != TILE_EMPTY);
     has_diag = (col < BOARD_COLS - 1 && row < BOARD_ROWS - 1 &&
-        board[layer][row + 1][col + 1] != TILE_EMPTY);
+        a->board[layer][row + 1][col + 1] != TILE_EMPTY);
 
     gui_rect_init(&rect, x, y, TILE_W, TILE_H);
     gui_surface_draw_rect(origin, &rect, face_color);
     gui_surface_draw_border(origin, &rect, gui_color_fg);
-    gui_surface_draw_bitmap_centered(origin, &window.size,
+    gui_surface_draw_bitmap_centered(origin, &a->window.size,
         &rect, tile_bitmaps[type], glyph_color);
 
     if (is_cursor) {
@@ -245,6 +255,7 @@ draw_tile(int layer, int col, int row)
 static void
 draw_empty_cursor(int col, int row, uint8_t color)
 {
+    app_state_st *a = app_state;
     /* At this size it won't draw over adjacent tiles up to 4th layer */
     int size = 4;
     int x = col * (TILE_W - 1) + (TILE_W - size) / 2;
@@ -252,25 +263,26 @@ draw_empty_cursor(int col, int row, uint8_t color)
     rect_st rect;
 
     gui_rect_init(&rect, x, y, size, size);
-    gui_surface_draw_rect(&window.origin, &rect, color);
-    gui_surface_mark_dirty(&window.origin, &rect);
+    gui_surface_draw_rect(&a->window.origin, &rect, color);
+    gui_surface_mark_dirty(&a->window.origin, &rect);
 }
 
 static void
 draw_dirty_tiles(void)
 {
+    app_state_st *a = app_state;
     int layer, row, col;
 
     /* Clear empty tiles */
     for (layer = 0; layer < BOARD_LAYERS; ++layer) {
         for (row = 0; row < BOARD_ROWS; ++row) {
             for (col = 0; col < BOARD_COLS; ++col) {
-                if (!dirty[layer][row][col] || board[layer][row][col] != TILE_EMPTY) {
+                if (!a->dirty[layer][row][col] || a->board[layer][row][col] != TILE_EMPTY) {
                     continue;
                 }
 
                 draw_tile(layer, col, row);
-                dirty[layer][row][col] = 0;
+                a->dirty[layer][row][col] = 0;
             }
         }
     }
@@ -279,12 +291,12 @@ draw_dirty_tiles(void)
     for (layer = 0; layer < BOARD_LAYERS; ++layer) {
         for (row = 0; row < BOARD_ROWS; ++row) {
             for (col = 0; col < BOARD_COLS; ++col) {
-                if (!dirty[layer][row][col]) {
+                if (!a->dirty[layer][row][col]) {
                     continue;
                 }
 
                 draw_tile(layer, col, row);
-                dirty[layer][row][col] = 0;
+                a->dirty[layer][row][col] = 0;
             }
         }
     }
@@ -293,15 +305,16 @@ draw_dirty_tiles(void)
 static void
 mark_tile_dirty(int layer, int col, int row)
 {
+    app_state_st *a = app_state;
     static const int8_t dc[3] = {1, 0, 1};
     static const int8_t dr[3] = {0, 1, 1};
     int i, nl, nc, nr;
 
-    if (col >= BOARD_COLS || row >= BOARD_ROWS || board[layer][row][col] == TILE_EMPTY) {
+    if (col >= BOARD_COLS || row >= BOARD_ROWS || a->board[layer][row][col] == TILE_EMPTY) {
         return;
     }
 
-    dirty[layer][row][col] = 1;
+    a->dirty[layer][row][col] = 1;
 
     /*
      * Recursively mark as dirty the bottom, right and bottom-right tiles
@@ -324,35 +337,37 @@ mark_tile_dirty(int layer, int col, int row)
 static void
 redraw_board(void)
 {
+    app_state_st *a = app_state;
     int layer, row, col;
     rect_st rect;
 
-    gui_rect_init(&rect, 0, 0, window.size.width, window.size.height);
-    gui_surface_draw_rect(&window.origin, &rect, gui_color_bg);
-    gui_surface_mark_dirty(&window.origin, &rect);
+    gui_rect_init(&rect, 0, 0, a->window.size.width, a->window.size.height);
+    gui_surface_draw_rect(&a->window.origin, &rect, gui_color_bg);
+    gui_surface_mark_dirty(&a->window.origin, &rect);
 
     for (layer = 0; layer < BOARD_LAYERS; ++layer) {
         for (row = 0; row < BOARD_ROWS; ++row) {
             for (col = 0; col < BOARD_COLS; ++col) {
-                dirty[layer][row][col] = (board[layer][row][col] != TILE_EMPTY);
+                a->dirty[layer][row][col] = (a->board[layer][row][col] != TILE_EMPTY);
             }
         }
     }
 
     draw_dirty_tiles();
 
-    if (topmost_layer_at(cur_col, cur_row) < 0) {
-        draw_empty_cursor(cur_col, cur_row, gui_color_fg);
+    if (topmost_layer_at(a->cur_col, a->cur_row) < 0) {
+        draw_empty_cursor(a->cur_col, a->cur_row, gui_color_fg);
     }
 }
 
 static void
 remove_tile(int layer, int col, int row)
 {
+    app_state_st *a = app_state;
     int nl, nc, nr;
 
-    board[layer][row][col] = TILE_EMPTY;
-    dirty[layer][row][col] = 1;
+    a->board[layer][row][col] = TILE_EMPTY;
+    a->dirty[layer][row][col] = 1;
 
     /* All adjacent tiles need to be redrawn */
     for (nl = 0; nl < BOARD_LAYERS; ++nl) {
@@ -369,7 +384,7 @@ remove_tile(int layer, int col, int row)
 
     draw_dirty_tiles();
 
-    if (cur_col == col && cur_row == row && topmost_layer_at(col, row) < 0) {
+    if (a->cur_col == col && a->cur_row == row && topmost_layer_at(col, row) < 0) {
         draw_empty_cursor(col, row, gui_color_fg);
     }
 }
@@ -377,20 +392,21 @@ remove_tile(int layer, int col, int row)
 static void
 shuffle_tiles(void)
 {
+    app_state_st *a = app_state;
     uint8_t deck[TILE_COUNT];
     uint8_t tmp;
     int count = 0;
     int layer, col, row, i, j;
 
-    if (state == STATE_WON) {
+    if (a->state == STATE_WON) {
         return;
     }
 
     for (layer = 0; layer < BOARD_LAYERS; ++layer) {
         for (row = 0; row < BOARD_ROWS; ++row) {
             for (col = 0; col < BOARD_COLS; ++col) {
-                if (board[layer][row][col] != TILE_EMPTY) {
-                    deck[count++] = board[layer][row][col];
+                if (a->board[layer][row][col] != TILE_EMPTY) {
+                    deck[count++] = a->board[layer][row][col];
                 }
             }
         }
@@ -407,16 +423,16 @@ shuffle_tiles(void)
     for (layer = 0; layer < BOARD_LAYERS; ++layer) {
         for (row = 0; row < BOARD_ROWS; ++row) {
             for (col = 0; col < BOARD_COLS; ++col) {
-                if (board[layer][row][col] != TILE_EMPTY) {
-                    board[layer][row][col] = deck[i++];
+                if (a->board[layer][row][col] != TILE_EMPTY) {
+                    a->board[layer][row][col] = deck[i++];
                 }
             }
         }
     }
 
-    sel_col = -1;
-    valid_moves = count_valid_moves();
-    state = valid_moves > 0 ? STATE_DEFAULT : STATE_STUCK;
+    a->sel_col = -1;
+    a->valid_moves = count_valid_moves();
+    a->state = a->valid_moves > 0 ? STATE_DEFAULT : STATE_STUCK;
 
     redraw_board();
     update_status();
@@ -425,13 +441,14 @@ shuffle_tiles(void)
 static void
 init_tiles(void)
 {
+    app_state_st *a = app_state;
     int layer, col, row, i = 0;
 
     for (layer = 0; layer < BOARD_LAYERS; layer++) {
         for (row = 0; row < BOARD_ROWS; row++) {
             for (col = 0; col < BOARD_COLS; col++) {
                 if (board_layout[layer][row][col]) {
-                    board[layer][row][col] = i / TILES_PER_TYPE + 1;
+                    a->board[layer][row][col] = i / TILES_PER_TYPE + 1;
                     ++i;
                 }
             }
@@ -444,45 +461,46 @@ init_tiles(void)
 static void
 select_tile(void)
 {
+    app_state_st *a = app_state;
     int layer;
     int prev_col, prev_row, prev_layer;
 
-    if (state != STATE_DEFAULT) {
+    if (a->state != STATE_DEFAULT) {
         return;
     }
 
-    layer = topmost_layer_at(cur_col, cur_row);
+    layer = topmost_layer_at(a->cur_col, a->cur_row);
 
-    if (layer < 0 || !is_tile_free(layer, cur_col, cur_row)) {
+    if (layer < 0 || !is_tile_free(layer, a->cur_col, a->cur_row)) {
         return;
     }
 
     /* Selecting already selected tile */
-    if (sel_col == cur_col && sel_row == cur_row && sel_layer == layer) {
-        sel_col = -1;
-        mark_tile_dirty(layer, cur_col, cur_row);
+    if (a->sel_col == a->cur_col && a->sel_row == a->cur_row && a->sel_layer == layer) {
+        a->sel_col = -1;
+        mark_tile_dirty(layer, a->cur_col, a->cur_row);
         draw_dirty_tiles();
         update_status();
         return;
     }
 
     /* First pick */
-    if (sel_col == -1) {
-        sel_col = cur_col;
-        sel_row = cur_row;
-        sel_layer = layer;
-        mark_tile_dirty(layer, cur_col, cur_row);
+    if (a->sel_col == -1) {
+        a->sel_col = a->cur_col;
+        a->sel_row = a->cur_row;
+        a->sel_layer = layer;
+        mark_tile_dirty(layer, a->cur_col, a->cur_row);
         draw_dirty_tiles();
         update_status();
         return;
     }
 
     /* Second pick - no match */
-    if (board[layer][cur_row][cur_col] != board[sel_layer][sel_row][sel_col]) {
-        prev_col = sel_col;
-        prev_row = sel_row;
-        prev_layer = sel_layer;
-        sel_col = -1;
+    if (a->board[layer][a->cur_row][a->cur_col] != a->board[a->sel_layer][a->sel_row][a->sel_col]) {
+        prev_col = a->sel_col;
+        prev_row = a->sel_row;
+        prev_layer = a->sel_layer;
+        a->sel_col = -1;
         mark_tile_dirty(prev_layer, prev_col, prev_row);
         draw_dirty_tiles();
         gui_status_set("No match");
@@ -490,21 +508,21 @@ select_tile(void)
     }
 
     /* Second pick - match */
-    prev_col = sel_col;
-    prev_row = sel_row;
-    prev_layer = sel_layer;
-    sel_col = -1;
-    --remaining_pairs;
+    prev_col = a->sel_col;
+    prev_row = a->sel_row;
+    prev_layer = a->sel_layer;
+    a->sel_col = -1;
+    --a->remaining_pairs;
 
-    remove_tile(layer, cur_col, cur_row);
+    remove_tile(layer, a->cur_col, a->cur_row);
     remove_tile(prev_layer, prev_col, prev_row);
 
-    valid_moves = count_valid_moves();
+    a->valid_moves = count_valid_moves();
 
-    if (remaining_pairs == 0) {
-        state = STATE_WON;
-    } else if (valid_moves == 0) {
-        state = STATE_STUCK;
+    if (a->remaining_pairs == 0) {
+        a->state = STATE_WON;
+    } else if (a->valid_moves == 0) {
+        a->state = STATE_STUCK;
     }
 
     update_status();
@@ -513,19 +531,20 @@ select_tile(void)
 static void
 update_cursor(int dx, int dy)
 {
-    int old_col = cur_col;
-    int old_row = cur_row;
+    app_state_st *a = app_state;
+    int old_col = a->cur_col;
+    int old_row = a->cur_row;
     int old_layer = topmost_layer_at(old_col, old_row);
     int new_layer;
 
-    cur_col = MAX(0, MIN(BOARD_COLS - 1, cur_col + dx));
-    cur_row = MAX(0, MIN(BOARD_ROWS - 1, cur_row + dy));
+    a->cur_col = MAX(0, MIN(BOARD_COLS - 1, a->cur_col + dx));
+    a->cur_row = MAX(0, MIN(BOARD_ROWS - 1, a->cur_row + dy));
 
-    if (old_col == cur_col && old_row == cur_row) {
+    if (old_col == a->cur_col && old_row == a->cur_row) {
         return;
     }
 
-    new_layer = topmost_layer_at(cur_col, cur_row);
+    new_layer = topmost_layer_at(a->cur_col, a->cur_row);
 
     if (old_layer >= 0) {
         mark_tile_dirty(old_layer, old_col, old_row);
@@ -534,9 +553,9 @@ update_cursor(int dx, int dy)
     }
 
     if (new_layer >= 0) {
-        mark_tile_dirty(new_layer, cur_col, cur_row);
+        mark_tile_dirty(new_layer, a->cur_col, a->cur_row);
     } else {
-        draw_empty_cursor(cur_col, cur_row, gui_color_fg);
+        draw_empty_cursor(a->cur_col, a->cur_row, gui_color_fg);
     }
 
     if (old_layer >= 0 || new_layer >= 0) {
@@ -547,11 +566,13 @@ update_cursor(int dx, int dy)
 static void
 restart_game(void)
 {
-    cur_col = BOARD_COLS / 2;
-    cur_row = BOARD_ROWS / 2;
-    sel_col = -1;
-    remaining_pairs = TILE_COUNT / 2;
-    state = STATE_DEFAULT;
+    app_state_st *a = app_state;
+
+    a->cur_col = BOARD_COLS / 2;
+    a->cur_row = BOARD_ROWS / 2;
+    a->sel_col = -1;
+    a->remaining_pairs = TILE_COUNT / 2;
+    a->state = STATE_DEFAULT;
 
     init_tiles();
 }
@@ -559,12 +580,14 @@ restart_game(void)
 static void
 on_key_down(uint8_t key_code, uint8_t key_mods)
 {
+    app_state_st *a = app_state;
+
     if (key_code == KEY_R) {
         restart_game();
         return;
     }
 
-    if (state == STATE_WON) {
+    if (a->state == STATE_WON) {
         return;
     }
 
@@ -582,13 +605,17 @@ on_key_down(uint8_t key_code, uint8_t key_mods)
 static void
 on_show(void)
 {
+    app_state_st *a = app_state;
+
+    gui_window_init(&a->window, WINDOW_WIDTH, WINDOW_HEIGHT);
+
     restart_game();
 }
 
 static void
 on_init(void)
 {
-    gui_window_init(&window, WINDOW_WIDTH, WINDOW_HEIGHT);
+    ASSERT(sizeof(app_state_st) <= sizeof(gui_app_shared_buffer));
 
     app_mahjong.on_show = on_show;
     app_mahjong.on_key_down = on_key_down;
