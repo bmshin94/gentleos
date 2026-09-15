@@ -43,7 +43,6 @@ extern void gui_rect_center(rect_st *r, const rect_st *container);
 extern void gui_rect_shrink(rect_st *r, int amount);
 extern void gui_rect_enclose(rect_st *a, const rect_st *b);
 extern void gui_rect_clip(rect_st *r, const rect_st *clipper);
-extern const char * gui_rect_format(const rect_st *r);
 /* gui/status.c */
 extern void gui_status_set_tl(const char *fmt, ...);
 extern void gui_status_set_tr(const char *fmt, ...);

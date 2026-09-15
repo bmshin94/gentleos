@@ -145,14 +145,3 @@ gui_rect_clip(rect_st *r, const rect_st *clipper)
         r->height = 0;
     }
 }
-
-global const char *
-gui_rect_format(const rect_st *r)
-{
-    static char buf[100];
-
-    snprintf(buf, sizeof(buf), "<x: %d, y: %d, w: %d, h: %d>",
-        r->x, r->y, r->width, r->height);
-
-    return buf;
-}
