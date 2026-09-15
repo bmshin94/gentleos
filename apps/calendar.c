@@ -29,27 +29,31 @@ enum {
     WINDOW_HEIGHT = GRID_Y + GRID_HEIGHT + 1,
 };
 
-static widget_st day_buttons[GRID_CELLS_COUNT];
-static window_st window;
-
 enum {
     MIN_YEAR = 1900,
     MAX_YEAR = 2099,
 };
 
-static int current_month;
-static int current_year;
-static int current_day;
+typedef struct {
+    window_st window;
+    grid_st grid;
+    widget_st day_buttons[GRID_CELLS_COUNT];
 
-static int selected_month;
-static int selected_year;
+    int current_month;
+    int current_year;
+    int current_day;
 
-static grid_st grid;
+    int selected_month;
+    int selected_year;
+} app_state_st;
+
+static app_state_st *app_state = (app_state_st *)gui_app_shared_buffer;
 
 static void
 draw_month_label(void)
 {
-    const char *month_name = TIME_MONTH_NAMES_SHORT[selected_month - 1];
+    app_state_st *a = app_state;
+    const char *month_name = TIME_MONTH_NAMES_SHORT[a->selected_month - 1];
     char buf[16];
     rect_st rect;
 
@@ -58,22 +62,23 @@ draw_month_label(void)
     rect.width = WINDOW_WIDTH;
     rect.height = TOOL_BAR_HEIGHT;
 
-    snprintf(buf, sizeof(buf), "%s %d", month_name, selected_year);
+    snprintf(buf, sizeof(buf), "%s %d", month_name, a->selected_year);
 
-    gui_surface_draw_border(&window.origin, &rect, gui_color_fg);
-    gui_surface_draw_str_centered(&window.origin, &rect, NULL, buf,
+    gui_surface_draw_border(&a->window.origin, &rect, gui_color_fg);
+    gui_surface_draw_str_centered(&a->window.origin, &rect, NULL, buf,
         gui_color_fg, gui_color_bg);
-    gui_surface_mark_dirty(&window.origin, &rect);
+    gui_surface_mark_dirty(&a->window.origin, &rect);
 }
 
 static void
 draw_day_button(widget_st *widget)
 {
+    app_state_st *a = app_state;
     int day = widget->tag1;
-    int num_days = time_get_days_in_month(selected_month, selected_year);
+    int num_days = time_get_days_in_month(a->selected_month, a->selected_year);
     int is_in_month = day >= 0 && day < num_days;
-    int is_current = (day == current_day - 1 && selected_month == current_month
-        && selected_year == current_year);
+    int is_current = (day == a->current_day - 1 && a->selected_month == a->current_month
+        && a->selected_year == a->current_year);
     int fg, bg;
     char buf[3];
 
@@ -98,12 +103,13 @@ draw_day_button(widget_st *widget)
 static void
 draw_selected_month(void)
 {
-    int day_of_week = time_get_day_of_week(1, selected_month, selected_year);
+    app_state_st *a = app_state;
+    int day_of_week = time_get_day_of_week(1, a->selected_month, a->selected_year);
     size_t i;
 
     for (i = 0; i < GRID_CELLS_COUNT; ++i) {
-        day_buttons[i].tag1 = i - day_of_week;
-        day_buttons[i].draw(&day_buttons[i]);
+        a->day_buttons[i].tag1 = i - day_of_week;
+        a->day_buttons[i].draw(&a->day_buttons[i]);
     }
 
     draw_month_label();
@@ -112,6 +118,7 @@ draw_selected_month(void)
 static void
 draw_week_bar(void)
 {
+    app_state_st *a = app_state;
     int y;
     rect_st rect;
 
@@ -121,8 +128,8 @@ draw_week_bar(void)
         rect.width = GRID_CELL_WIDTH + 2;
         rect.height = WEEK_BAR_HEIGHT;
 
-        gui_surface_draw_border(&window.origin, &rect, gui_color_fg);
-        gui_surface_draw_str_centered(&window.origin, &rect, NULL,
+        gui_surface_draw_border(&a->window.origin, &rect, gui_color_fg);
+        gui_surface_draw_str_centered(&a->window.origin, &rect, NULL,
             TIME_DAY_NAMES_SHORT[y], gui_color_fg, gui_color_bg);
     }
 }
@@ -130,11 +137,13 @@ draw_week_bar(void)
 static void
 set_prev_month(void)
 {
-    if (selected_month > 1) {
-        selected_month -= 1;
-    } else if (selected_year > MIN_YEAR) {
-        selected_year -= 1;
-        selected_month = 12;
+    app_state_st *a = app_state;
+
+    if (a->selected_month > 1) {
+        a->selected_month -= 1;
+    } else if (a->selected_year > MIN_YEAR) {
+        a->selected_year -= 1;
+        a->selected_month = 12;
     } else {
         return;
     }
@@ -145,11 +154,13 @@ set_prev_month(void)
 static void
 set_next_month(void)
 {
-    if (selected_month < 12) {
-        selected_month += 1;
-    } else if (selected_year < MAX_YEAR) {
-        selected_year += 1;
-        selected_month = 1;
+    app_state_st *a = app_state;
+
+    if (a->selected_month < 12) {
+        a->selected_month += 1;
+    } else if (a->selected_year < MAX_YEAR) {
+        a->selected_year += 1;
+        a->selected_month = 1;
     } else {
         return;
     }
@@ -169,49 +180,56 @@ on_key_up(uint8_t key_code, uint8_t key_mods)
 static void
 init_day_buttons(void)
 {
+    app_state_st *a = app_state;
     uint16_t i;
     int col, row;
 
-    grid.cell_width = GRID_CELL_WIDTH;
-    grid.cell_height = GRID_CELL_HEIGHT;
-    grid.cols = GRID_COLS;
-    grid.rows = GRID_ROWS;
-    grid.x = GRID_X;
-    grid.y = GRID_Y;
+    a->grid.cell_width = GRID_CELL_WIDTH;
+    a->grid.cell_height = GRID_CELL_HEIGHT;
+    a->grid.cols = GRID_COLS;
+    a->grid.rows = GRID_ROWS;
+    a->grid.x = GRID_X;
+    a->grid.y = GRID_Y;
 
     for (i = 0; i < GRID_CELLS_COUNT; ++i) {
         col = i % GRID_COLS;
         row = i / GRID_COLS;
 
-        day_buttons[i].origin = &window.origin;
-        gui_grid_cell_rect(&grid, col, row, &day_buttons[i].rect);
-        day_buttons[i].draw = draw_day_button;
+        a->day_buttons[i].origin = &a->window.origin;
+        gui_grid_cell_rect(&a->grid, col, row, &a->day_buttons[i].rect);
+        a->day_buttons[i].draw = draw_day_button;
     }
 }
 
 static void
 init_current_date(void)
 {
+    app_state_st *a = app_state;
     time_st t;
     time_get(&t);
 
-    current_month = t.month;
-    current_year = t.year;
-    current_day = t.day;
+    a->current_month = t.month;
+    a->current_year = t.year;
+    a->current_day = t.day;
 
-    selected_month = current_month;
-    selected_year = current_year;
+    a->selected_month = a->current_month;
+    a->selected_year = a->current_year;
 }
 
 static void
 on_show(void)
 {
+    app_state_st *a = app_state;
     int i;
 
-    gui_window_draw(&window, gui_color_bg, 1);
+    gui_window_init(&a->window, WINDOW_WIDTH, WINDOW_HEIGHT);
+    init_day_buttons();
+    init_current_date();
+
+    gui_window_draw(&a->window, gui_color_bg, 1);
 
     for (i = 0; i < GRID_CELLS_COUNT; ++i) {
-        day_buttons[i].draw(&day_buttons[i]);
+        a->day_buttons[i].draw(&a->day_buttons[i]);
     }
 
     draw_week_bar();
@@ -222,10 +240,7 @@ on_show(void)
 static void
 on_init(void)
 {
-    gui_window_init(&window, WINDOW_WIDTH, WINDOW_HEIGHT);
-
-    init_day_buttons();
-    init_current_date();
+    ASSERT(sizeof(app_state_st) <= sizeof(gui_app_shared_buffer));
 
     app_calendar.on_show = on_show;
     app_calendar.on_key_up = on_key_up;
