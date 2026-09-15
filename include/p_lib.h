@@ -13,11 +13,6 @@ extern int key_number_for_code(uint8_t code);
 /* lib/math.c */
 extern int udiv32(uint32_t *out, uint32_t dividend, uint32_t divisor);
 extern int umod32(uint32_t *out, uint32_t dividend, uint32_t divisor);
-extern int add32(int32_t *out, int32_t a, int32_t b);
-extern int sub32(int32_t *out, int32_t a, int32_t b);
-extern int mul32(int32_t *out, int32_t a, int32_t b);
-extern int div32(int32_t *out, int32_t a, int32_t b);
-extern int append32(int32_t *out, int32_t a, int32_t d);
 /* lib/printf.c */
 extern int vsnprintf(char *buf, size_t nbyte, const char *fmt, va_list va);
 extern int snprintf(char *buf, size_t nbyte, const char *fmt, ...);
