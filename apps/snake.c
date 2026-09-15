@@ -5,7 +5,6 @@
  * File: snake.c - Snake game
  */
 
-#include "kernel.h"
 #include <gui.h>
 
 enum {
@@ -26,10 +25,6 @@ enum {
     MOVE_TICKS = TICK_FREQUENCY * 15 / 100, /* 0.15s */
 };
 
-static window_st window;
-
-static grid_st grid;
-
 enum {
     CELL_FLOOR = 0,
     CELL_WALL = 1,
@@ -37,54 +32,68 @@ enum {
     CELL_FRUIT = 3,
 };
 
-static uint8_t cell_colors[4];
-
-static uint8_t cells[GRID_COLS][GRID_ROWS];
+enum {
+    DIR_UP,
+    DIR_DOWN,
+    DIR_LEFT,
+    DIR_RIGHT,
+};
 
 typedef struct {
     uint8_t x, y;
 } coords_st;
 
-static struct {
-    coords_st coords[GRID_COLS * GRID_ROWS];
-    coords_st *head;
-    coords_st *tail;
-    int grow;
-} body;
+typedef struct {
+    window_st window;
+    grid_st grid;
 
-static enum {
-    DIR_UP, DIR_DOWN, DIR_LEFT, DIR_RIGHT
-} prev_dir, next_dir;
+    uint8_t cell_colors[4];
+    uint8_t cells[GRID_COLS][GRID_ROWS];
 
-static int score;
+    struct {
+        coords_st coords[GRID_COLS * GRID_ROWS];
+        coords_st *head;
+        coords_st *tail;
+        int grow;
+    } body;
+
+    int prev_dir;
+    int next_dir;
+
+    int score;
+    int game_over;
+    int game_paused;
+} app_state_st;
+
 static int best_score;
-static int game_over;
-static int game_paused;
+static app_state_st app_state;
 
 static void
 update_status(void)
 {
+    app_state_st *a = &app_state;
     const char *msg = "";
 
-    if (game_over) {
+    if (a->game_over) {
         msg = "Game Over!  |  ";
-    } else if (game_paused) {
+    } else if (a->game_paused) {
         msg = "Paused  |  ";
     }
 
-    gui_status_set("%sScore: %d  Best: %d", msg, score, best_score);
+    gui_status_set("%sScore: %d  Best: %d", msg, a->score, best_score);
 }
 
 static void
 draw_cell(int x, int y, uint8_t cell_type)
 {
+    app_state_st *a = &app_state;
     rect_st r;
 
-    cells[x][y] = cell_type;
+    a->cells[x][y] = cell_type;
 
-    gui_grid_cell_rect(&grid, x, y, &r);
-    gui_surface_draw_rect(&window.origin, &r, cell_colors[cell_type]);
-    gui_surface_mark_dirty(&window.origin, &r);
+    gui_grid_cell_rect(&a->grid, x, y, &r);
+    gui_surface_draw_rect(&a->window.origin, &r, a->cell_colors[cell_type]);
+    gui_surface_mark_dirty(&a->window.origin, &r);
 }
 
 static void
@@ -107,12 +116,13 @@ draw_board(void)
 
 static void
 add_fruit(void) {
+    app_state_st *a = &app_state;
     coords_st c;
 
     do {
         c.x = rand() % GRID_COLS;
         c.y = rand() % GRID_ROWS;
-    } while (cells[c.x][c.y] != CELL_FLOOR);
+    } while (a->cells[c.x][c.y] != CELL_FLOOR);
 
     draw_cell(c.x, c.y, CELL_FRUIT);
 }
@@ -120,7 +130,9 @@ add_fruit(void) {
 static coords_st
 move_head(coords_st head)
 {
-    switch (next_dir) {
+    app_state_st *a = &app_state;
+
+    switch (a->next_dir) {
     case DIR_UP:    head.y--; break;
     case DIR_DOWN:  head.y++; break;
     case DIR_LEFT:  head.x--; break;
@@ -133,20 +145,21 @@ move_head(coords_st head)
 static void
 move_snake(coords_st next_head)
 {
+    app_state_st *a = &app_state;
     coords_st *c;
 
-    if (body.grow) {
-        ++body.tail;
-        --body.grow;
+    if (a->body.grow) {
+        ++a->body.tail;
+        --a->body.grow;
     } else {
-        draw_cell(body.tail->x, body.tail->y, CELL_FLOOR);
+        draw_cell(a->body.tail->x, a->body.tail->y, CELL_FLOOR);
     }
 
-    for (c = body.tail; c != body.head; --c) {
+    for (c = a->body.tail; c != a->body.head; --c) {
         *c = *(c - 1);
     }
 
-    *(body.head) = next_head;
+    *(a->body.head) = next_head;
 
     draw_cell(next_head.x, next_head.y, CELL_SNAKE);
 }
@@ -154,10 +167,12 @@ move_snake(coords_st next_head)
 static void
 end_game(void)
 {
-    game_over = 1;
+    app_state_st *a = &app_state;
 
-    if (score > best_score) {
-        best_score = score;
+    a->game_over = 1;
+
+    if (a->score > best_score) {
+        best_score = a->score;
     }
 
     update_status();
@@ -166,17 +181,19 @@ end_game(void)
 static void
 restart_game(void)
 {
-    score = 0;
-    game_over = 0;
-    game_paused = 0;
+    app_state_st *a = &app_state;
 
-    body.coords[0].x = GRID_COLS / 2;
-    body.coords[0].y = GRID_ROWS / 2;
-    body.head = body.tail = body.coords;
-    body.grow = 7;
+    a->score = 0;
+    a->game_over = 0;
+    a->game_paused = 0;
 
-    prev_dir = DIR_RIGHT;
-    next_dir = DIR_RIGHT;
+    a->body.coords[0].x = GRID_COLS / 2;
+    a->body.coords[0].y = GRID_ROWS / 2;
+    a->body.head = a->body.tail = a->body.coords;
+    a->body.grow = 7;
+
+    a->prev_dir = DIR_RIGHT;
+    a->next_dir = DIR_RIGHT;
 
     draw_board();
     add_fruit();
@@ -186,14 +203,15 @@ restart_game(void)
 static void
 on_timeout(void)
 {
+    app_state_st *a = &app_state;
     coords_st next_head;
     uint8_t next_block;
 
-    if (game_over || game_paused) {
+    if (a->game_over || a->game_paused) {
         return;
     }
 
-    next_head = move_head(*body.head);
+    next_head = move_head(*a->body.head);
 
     if (next_head.x < 0 || next_head.x >= GRID_COLS ||
         next_head.y < 0 || next_head.y >= GRID_ROWS) {
@@ -201,7 +219,7 @@ on_timeout(void)
         return;
     }
 
-    next_block = cells[next_head.x][next_head.y];
+    next_block = a->cells[next_head.x][next_head.y];
 
     if (next_block != CELL_FRUIT && next_block != CELL_FLOOR) {
         end_game();
@@ -209,8 +227,8 @@ on_timeout(void)
     }
 
     if (next_block == CELL_FRUIT) {
-        body.grow += 2;
-        score += 5;
+        a->body.grow += 2;
+        a->score += 5;
         update_status();
     }
 
@@ -220,7 +238,7 @@ on_timeout(void)
         add_fruit();
     }
 
-    prev_dir = next_dir;
+    a->prev_dir = a->next_dir;
 }
 
 static void
@@ -239,47 +257,53 @@ on_tick(void)
 static void
 on_key_down(uint8_t key_code, uint8_t key_mods)
 {
-    if (game_over) {
+    app_state_st *a = &app_state;
+
+    if (a->game_over) {
         restart_game();
         return;
     }
 
     if (key_code == KEY_P) {
-        game_paused = !game_paused;
+        a->game_paused = !a->game_paused;
         update_status();
         return;
     }
 
-    if (game_paused) {
+    if (a->game_paused) {
         return;
     }
 
-    if (key_code == KEY_UP && prev_dir != DIR_DOWN) next_dir = DIR_UP;
-    else if (key_code == KEY_DOWN && prev_dir != DIR_UP) next_dir = DIR_DOWN;
-    else if (key_code == KEY_LEFT && prev_dir != DIR_RIGHT) next_dir = DIR_LEFT;
-    else if (key_code == KEY_RIGHT && prev_dir != DIR_LEFT) next_dir = DIR_RIGHT;
+    if (key_code == KEY_UP && a->prev_dir != DIR_DOWN) a->next_dir = DIR_UP;
+    else if (key_code == KEY_DOWN && a->prev_dir != DIR_UP) a->next_dir = DIR_DOWN;
+    else if (key_code == KEY_LEFT && a->prev_dir != DIR_RIGHT) a->next_dir = DIR_LEFT;
+    else if (key_code == KEY_RIGHT && a->prev_dir != DIR_LEFT) a->next_dir = DIR_RIGHT;
 }
 
 static void
 init_grid(void)
 {
-    grid.cell_width = GRID_CELL_WIDTH;
-    grid.cell_height = GRID_CELL_HEIGHT;
-    grid.cols = GRID_COLS;
-    grid.rows = GRID_ROWS;
-    grid.x = GRID_X;
-    grid.y = GRID_Y;
+    app_state_st *a = &app_state;
+
+    a->grid.cell_width = GRID_CELL_WIDTH;
+    a->grid.cell_height = GRID_CELL_HEIGHT;
+    a->grid.cols = GRID_COLS;
+    a->grid.rows = GRID_ROWS;
+    a->grid.x = GRID_X;
+    a->grid.y = GRID_Y;
 }
 
 static void
 on_show(void)
 {
-    cell_colors[CELL_FLOOR] = gui_color_bg;
-    cell_colors[CELL_WALL] = gui_color_fg;
-    cell_colors[CELL_SNAKE] = gui_color_fg;
-    cell_colors[CELL_FRUIT] = gui_color_fg;
+    app_state_st *a = &app_state;
 
-    gui_window_draw(&window, gui_color_bg, 1);
+    a->cell_colors[CELL_FLOOR] = gui_color_bg;
+    a->cell_colors[CELL_WALL] = gui_color_fg;
+    a->cell_colors[CELL_SNAKE] = gui_color_fg;
+    a->cell_colors[CELL_FRUIT] = gui_color_fg;
+
+    gui_window_draw(&a->window, gui_color_bg, 1);
     gui_status_set_br("P: Pause/Resume");
     restart_game();
 }
@@ -287,7 +311,9 @@ on_show(void)
 static void
 on_init(void)
 {
-    gui_window_init(&window, WINDOW_WIDTH, WINDOW_HEIGHT);
+    app_state_st *a = &app_state;
+
+    gui_window_init(&a->window, WINDOW_WIDTH, WINDOW_HEIGHT);
 
     init_grid();
 
