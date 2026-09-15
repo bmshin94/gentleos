@@ -1,3 +1,5 @@
+/* apps/2048.c */
+extern app_st app_2048;
 /* apps/bjack.c */
 extern app_st app_blackjack;
 /* apps/calc.c */

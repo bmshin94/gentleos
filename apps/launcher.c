@@ -33,7 +33,6 @@ enum {
 static app_st *apps[] = {
     &app_clock,
     &app_calendar,
-    &app_calc,
     &app_fonts,
     &app_keys,
     &app_sounds,
@@ -42,6 +41,7 @@ static app_st *apps[] = {
     &app_mahjong,
     &app_snake,
     &app_tetris,
+    &app_2048,
     &app_freecell,
     &app_klondike,
     &app_blackjack,
